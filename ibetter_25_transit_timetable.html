@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iBetter 25 Transit Authority</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for a sleek look */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .tab-active { border-bottom: 3px solid #2563eb; color: #1e3a8a; font-weight: 600; }
+        .tab-inactive { border-bottom: 3px solid transparent; color: #64748b; }
+        
+        /* Train hover effects */
+        .train-card:hover .train-svg { transform: translateX(10px); transition: transform 0.3s ease; }
+        .train-svg { transition: transform 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-lg z-10 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <!-- Logo SVG -->
+                    <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight">iBetter 25</h1>
+                        <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Colorado Transit Authority</p>
+                    </div>
+                </div>
+                <div class="hidden sm:block text-right">
+                    <p class="text-sm text-slate-300">System Status: <span class="text-emerald-400 font-semibold">● Optimal (84k/hr capacity)</span></p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <div class="bg-white shadow-sm sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex space-x-8" id="tabs">
+                <button onclick="switchTab('timetable')" id="tab-timetable" class="tab-active py-4 px-1 text-sm outline-none transition-colors">Live Timetable</button>
+                <button onclick="switchTab('lines')" id="tab-lines" class="tab-inactive py-4 px-1 text-sm outline-none transition-colors">Line Information & Fleet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- TIMETABLE VIEW -->
+        <div id="view-timetable" class="block">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">Filter Schedule</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Station</label>
+                        <select id="filter-station" onchange="renderTimetable()" class="w-full border-slate-300 rounded-lg shadow-sm p-2.5 border focus:ring-blue-500 focus:border-blue-500 bg-slate-50">
+                            <option value="ALL">All Stations (View Full Routes)</option>
+                            <!-- Station options injected via JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Line</label>
+                        <select id="filter-line" onchange="renderTimetable()" class="w-full border-slate-300 rounded-lg shadow-sm p-2.5 border focus:ring-blue-500 focus:border-blue-500 bg-slate-50">
+                            <option value="ALL">All Lines</option>
+                            <option value="FRX">Front Range Express (FRX)</option>
+                            <option value="N1">Northern Local (N1)</option>
+                            <option value="M1">Metro Local (M1)</option>
+                            <option value="S1">Southern Local (S1)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Direction</label>
+                        <select id="filter-direction" onchange="renderTimetable()" class="w-full border-slate-300 rounded-lg shadow-sm p-2.5 border focus:ring-blue-500 focus:border-blue-500 bg-slate-50">
+                            <option value="ALL">Both Directions</option>
+                            <option value="Southbound">Southbound</option>
+                            <option value="Northbound">Northbound</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full whitespace-nowrap text-left">
+                        <thead class="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-4 font-semibold">Train ID</th>
+                                <th class="px-6 py-4 font-semibold">Line</th>
+                                <th class="px-6 py-4 font-semibold" id="col-origin">Origin ➔ Destination</th>
+                                <th class="px-6 py-4 font-semibold">Departure</th>
+                                <th class="px-6 py-4 font-semibold">Status</th>
+                                <th class="px-6 py-4 font-semibold text-right">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="timetable-body" class="divide-y divide-slate-100">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="no-results" class="hidden p-12 text-center text-slate-500">
+                    <svg class="mx-auto h-12 w-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="text-lg font-medium">No trains match your current filters.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- LINE INFO VIEW -->
+        <div id="view-lines" class="hidden space-y-8">
+            <div class="mb-8">
+                <h2 class="text-3xl font-extrabold text-slate-900">The Fleet & Routes</h2>
+                <p class="text-slate-600 mt-2 max-w-2xl">The iBetter 25 corridor utilizes a dual-tier quad-track system. Commuter-style rolling stock is used for Express intercity routes, while high-capacity articulated light rail handles the local zones.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="fleet-container">
+                <!-- Fleet Cards Injected via JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal for Trip Details -->
+    <div id="trip-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-300" id="trip-modal-content">
+            <div class="bg-slate-900 p-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-lg" id="modal-title">Trip Details</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-0 max-h-[70vh] overflow-y-auto" id="modal-body">
+                <!-- Timeline injected via JS -->
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-center">
+                <button onclick="closeModal()" class="px-6 py-2 bg-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-300 transition-colors w-full">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm flex flex-col items-center gap-2">
+            <p>&copy; 2026 iBetter 25 Transit Authority. All systems operational.</p>
+            <p class="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-300 border border-slate-700">Chief Engineer: Flench</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- DATA DEFINITIONS ---
+
+        const stationsList = [
+            "Fort Collins", "Loveland", "Berthoud", "Longmont", "Boulder Junction", 
+            "Thornton", "Denver Union", "Denver Tech Center (DTC)", 
+            "Lone Tree", "Castle Rock", "Monument", "Air Force Academy", "Colorado Springs"
+        ];
+
+        const lines = {
+            "FRX": {
+                name: "Front Range Express",
+                color: "bg-blue-600",
+                badge: "text-blue-700 bg-blue-100 ring-blue-600/20",
+                type: "Express",
+                speed: "75 mph continuous",
+                desc: "High-speed intercity travel. Skips minor suburban stops to connect major urban centers rapidly.",
+                stops: ["Fort Collins", "Loveland", "Denver Union", "Castle Rock", "Monument", "Colorado Springs"],
+                times: [0, 12, 45, 70, 95, 115], // Minutes from origin
+                svg: `<svg viewBox="0 0 800 200" class="w-full h-auto drop-shadow-md">
+                        <!-- Rails -->
+                        <path d="M0 160 L800 160" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="20, 10"/>
+                        <!-- Express Train Body -->
+                        <path d="M50 150 L650 150 L750 150 Q790 150 780 110 L740 60 Q720 40 680 40 L50 40 Z" fill="#1e3a8a"/>
+                        <!-- Accent Stripe -->
+                        <path d="M50 120 L765 120 L730 70 L50 70 Z" fill="#3b82f6"/>
+                        <!-- Windows -->
+                        <rect x="80" y="80" width="60" height="30" rx="4" fill="#0f172a"/>
+                        <rect x="160" y="80" width="60" height="30" rx="4" fill="#0f172a"/>
+                        <rect x="240" y="80" width="60" height="30" rx="4" fill="#0f172a"/>
+                        <rect x="320" y="80" width="60" height="30" rx="4" fill="#0f172a"/>
+                        <rect x="400" y="80" width="60" height="30" rx="4" fill="#0f172a"/>
+                        <rect x="480" y="80" width="60" height="30" rx="4" fill="#0f172a"/>
+                        <rect x="560" y="80" width="60" height="30" rx="4" fill="#0f172a"/>
+                        <!-- Front Window -->
+                        <path d="M660 80 L715 80 L735 110 L660 110 Z" fill="#0f172a"/>
+                        <!-- Wheels -->
+                        <circle cx="120" cy="150" r="10" fill="#475569"/>
+                        <circle cx="200" cy="150" r="10" fill="#475569"/>
+                        <circle cx="360" cy="150" r="10" fill="#475569"/>
+                        <circle cx="440" cy="150" r="10" fill="#475569"/>
+                        <circle cx="600" cy="150" r="10" fill="#475569"/>
+                        <circle cx="680" cy="150" r="10" fill="#475569"/>
+                        <!-- Pantograph (Power) -->
+                        <path d="M400 40 L420 10 L460 10 L480 40 M420 10 L440 40 M460 10 L440 40" stroke="#64748b" stroke-width="3" fill="none"/>
+                      </svg>`
+            },
+            "N1": {
+                name: "Northern Local",
+                color: "bg-emerald-600",
+                badge: "text-emerald-700 bg-emerald-100 ring-emerald-600/20",
+                type: "Local",
+                speed: "55 mph avg (75mph sprints)",
+                desc: "Services all northern communities, terminating at Denver Union Station for Express transfers.",
+                stops: ["Fort Collins", "Loveland", "Berthoud", "Longmont", "Boulder Junction", "Thornton", "Denver Union"],
+                times: [0, 15, 25, 38, 50, 65, 80],
+                svg: `<svg viewBox="0 0 800 200" class="w-full h-auto drop-shadow-md">
+                        <!-- Rails -->
+                        <path d="M0 160 L800 160" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="20, 10"/>
+                        <!-- Local Train Body (Blockier, more doors) -->
+                        <path d="M100 150 L700 150 L710 140 L710 50 Q710 40 700 40 L100 40 Q90 40 90 50 L90 140 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                        <!-- Lower Body / Green Stripe -->
+                        <rect x="91" y="120" width="618" height="29" fill="#10b981"/>
+                        <rect x="91" y="41" width="618" height="15" fill="#334155"/>
+                        <!-- Doors & Windows -->
+                        <rect x="120" y="65" width="40" height="35" rx="2" fill="#0f172a"/>
+                        <!-- Door -->
+                        <rect x="180" y="60" width="30" height="85" fill="#334155"/> <rect x="185" y="65" width="20" height="40" fill="#0f172a"/>
+                        <rect x="230" y="65" width="40" height="35" rx="2" fill="#0f172a"/>
+                        <rect x="290" y="65" width="40" height="35" rx="2" fill="#0f172a"/>
+                        <!-- Door -->
+                        <rect x="350" y="60" width="30" height="85" fill="#334155"/> <rect x="355" y="65" width="20" height="40" fill="#0f172a"/>
+                        <rect x="400" y="65" width="40" height="35" rx="2" fill="#0f172a"/>
+                        <rect x="460" y="65" width="40" height="35" rx="2" fill="#0f172a"/>
+                        <!-- Door -->
+                        <rect x="520" y="60" width="30" height="85" fill="#334155"/> <rect x="525" y="65" width="20" height="40" fill="#0f172a"/>
+                        <rect x="570" y="65" width="40" height="35" rx="2" fill="#0f172a"/>
+                        <!-- Driver Cabin Window -->
+                        <rect x="640" y="65" width="50" height="45" rx="4" fill="#0f172a"/>
+                        <!-- Wheels (Bogeys) -->
+                        <rect x="140" y="150" width="60" height="15" rx="4" fill="#475569"/> <circle cx="155" cy="160" r="6" fill="#1e293b"/> <circle cx="185" cy="160" r="6" fill="#1e293b"/>
+                        <rect x="370" y="150" width="60" height="15" rx="4" fill="#475569"/> <circle cx="385" cy="160" r="6" fill="#1e293b"/> <circle cx="415" cy="160" r="6" fill="#1e293b"/>
+                        <rect x="600" y="150" width="60" height="15" rx="4" fill="#475569"/> <circle cx="615" cy="160" r="6" fill="#1e293b"/> <circle cx="645" cy="160" r="6" fill="#1e293b"/>
+                        <!-- Pantograph -->
+                        <path d="M380 40 L390 10 L430 10 L440 40 M390 10 L410 40 M430 10 L410 40" stroke="#64748b" stroke-width="2" fill="none"/>
+                      </svg>`
+            },
+            "M1": {
+                name: "Metro Local",
+                color: "bg-purple-600",
+                badge: "text-purple-700 bg-purple-100 ring-purple-600/20",
+                type: "Local",
+                speed: "45 mph avg",
+                desc: "The urban workhorse. Connects the northern suburbs through downtown Denver into the Tech Center and Douglas County.",
+                stops: ["Thornton", "Denver Union", "Denver Tech Center (DTC)", "Lone Tree", "Castle Rock"],
+                times: [0, 20, 40, 55, 75],
+                svg: null // Uses N1 svg but recolored in JS
+            },
+            "S1": {
+                name: "Southern Local",
+                color: "bg-amber-600",
+                badge: "text-amber-700 bg-amber-100 ring-amber-600/20",
+                type: "Local",
+                speed: "55 mph avg (75mph sprints)",
+                desc: "Connects Denver to Colorado Springs, utilizing the 75mph 'sprint' zone between Castle Rock and Monument.",
+                stops: ["Denver Union", "Denver Tech Center (DTC)", "Lone Tree", "Castle Rock", "Monument", "Air Force Academy", "Colorado Springs"],
+                times: [0, 20, 35, 55, 80, 95, 110],
+                svg: null // Uses N1 svg but recolored in JS
+            }
+        };
+
+        // Reuse the Local train SVG but change the stripe color
+        lines["M1"].svg = lines["N1"].svg.replace('fill="#10b981"', 'fill="#a855f7"');
+        lines["S1"].svg = lines["N1"].svg.replace('fill="#10b981"', 'fill="#f59e0b"');
+
+        let scheduleData = [];
+
+        // --- SCHEDULE GENERATOR ---
+        function formatTime(minutesTotal) {
+            const h = Math.floor(minutesTotal / 60) % 24;
+            const m = minutesTotal % 60;
+            const period = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 === 0 ? 12 : h % 12;
+            const mStr = m.toString().padStart(2, '0');
+            return `${h12}:${mStr} ${period}`;
+        }
+
+        function generateTrips(lineId, startHour, intervalMins, numTrips, direction) {
+            const line = lines[lineId];
+            let trips = [];
+            let currentStart = startHour * 60; // start in minutes (e.g., 6 * 60 = 360 = 6:00 AM)
+
+            for (let i = 0; i < numTrips; i++) {
+                let trip = {
+                    id: `${lineId}-${direction === 'Southbound' ? 'S' : 'N'}${100 + i}`,
+                    lineId: lineId,
+                    direction: direction,
+                    stops: []
+                };
+
+                let stopNames = direction === 'Southbound' ? [...line.stops] : [...line.stops].reverse();
+                // To reverse times correctly, calculate absolute time for each stop based on offset
+                let maxOffset = line.times[line.times.length - 1];
+
+                stopNames.forEach((stopName, idx) => {
+                    let timeOffset;
+                    if (direction === 'Southbound') {
+                        timeOffset = line.times[idx];
+                    } else {
+                        // Reverse offset
+                        let originalIdx = line.stops.indexOf(stopName);
+                        timeOffset = maxOffset - line.times[originalIdx];
+                    }
+                    
+                    trip.stops.push({
+                        station: stopName,
+                        timeMins: currentStart + timeOffset,
+                        timeFormatted: formatTime(currentStart + timeOffset)
+                    });
+                });
+                
+                trips.push(trip);
+                currentStart += intervalMins;
+            }
+            return trips;
+        }
+
+        function initData() {
+            // Populate Station Dropdown
+            const stationSelect = document.getElementById('filter-station');
+            stationsList.forEach(station => {
+                let opt = document.createElement('option');
+                opt.value = station;
+                opt.textContent = station;
+                stationSelect.appendChild(opt);
+            });
+
+            // Generate Morning Peak Schedule (6:00 AM start)
+            scheduleData = [
+                ...generateTrips("FRX", 6, 30, 8, "Southbound"), // Every 30m, 8 trips
+                ...generateTrips("FRX", 6, 30, 8, "Northbound"),
+                ...generateTrips("N1", 5.5, 15, 12, "Southbound"), // Every 15m, 12 trips
+                ...generateTrips("N1", 6, 15, 10, "Northbound"),
+                ...generateTrips("M1", 6, 10, 18, "Southbound"), // Every 10m
+                ...generateTrips("M1", 6, 10, 18, "Northbound"),
+                ...generateTrips("S1", 6, 15, 12, "Southbound"), // Every 15m
+                ...generateTrips("S1", 6, 15, 12, "Northbound")
+            ];
+
+            // Sort all trips by origin departure time
+            scheduleData.sort((a, b) => a.stops[0].timeMins - b.stops[0].timeMins);
+        }
+
+        // --- UI LOGIC ---
+
+        function switchTab(tabId) {
+            // Update Tab Styling
+            document.getElementById('tab-timetable').className = tabId === 'timetable' ? 'tab-active py-4 px-1 text-sm outline-none transition-colors' : 'tab-inactive py-4 px-1 text-sm outline-none transition-colors hover:text-slate-800';
+            document.getElementById('tab-lines').className = tabId === 'lines' ? 'tab-active py-4 px-1 text-sm outline-none transition-colors' : 'tab-inactive py-4 px-1 text-sm outline-none transition-colors hover:text-slate-800';
+            
+            // Toggle Content
+            document.getElementById('view-timetable').style.display = tabId === 'timetable' ? 'block' : 'none';
+            document.getElementById('view-lines').style.display = tabId === 'lines' ? 'block' : 'none';
+
+            if (tabId === 'lines' && document.getElementById('fleet-container').innerHTML.trim() === '') {
+                renderLines();
+            }
+        }
+
+        function getStatus(timeMins) {
+            // Fake status logic based on time
+            // Let's assume current time is 7:30 AM (450 mins)
+            const currentTime = 450; 
+            if (timeMins < currentTime) return `<span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium bg-slate-100 text-slate-600">Departed</span>`;
+            if (timeMins === currentTime) return `<span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium bg-red-100 text-red-700"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>Boarding</span>`;
+            return `<span class="inline-flex items-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium bg-emerald-100 text-emerald-700">On Time</span>`;
+        }
+
+        function renderTimetable() {
+            const station = document.getElementById('filter-station').value;
+            const line = document.getElementById('filter-line').value;
+            const direction = document.getElementById('filter-direction').value;
+            
+            const tbody = document.getElementById('timetable-body');
+            const noResults = document.getElementById('no-results');
+            tbody.innerHTML = '';
+
+            let filtered = scheduleData.filter(trip => {
+                if (line !== "ALL" && trip.lineId !== line) return false;
+                if (direction !== "ALL" && trip.direction !== direction) return false;
+                if (station !== "ALL" && !trip.stops.find(s => s.station === station)) return false;
+                return true;
+            });
+
+            // Adjust table header dynamically
+            const colOrigin = document.getElementById('col-origin');
+            if (station === "ALL") {
+                colOrigin.innerHTML = "Origin ➔ Destination";
+            } else {
+                colOrigin.innerHTML = "Route";
+            }
+
+            if (filtered.length === 0) {
+                noResults.classList.remove('hidden');
+                tbody.parentElement.classList.add('hidden');
+            } else {
+                noResults.classList.add('hidden');
+                tbody.parentElement.classList.remove('hidden');
+
+                filtered.forEach(trip => {
+                    const lData = lines[trip.lineId];
+                    const origin = trip.stops[0];
+                    const dest = trip.stops[trip.stops.length - 1];
+                    
+                    let targetStop = origin;
+                    let displayRoute = `<div class="font-medium text-slate-900">${origin.station}</div><div class="text-xs text-slate-500">to ${dest.station}</div>`;
+                    
+                    // If filtering by specific station, show times for THAT station
+                    if (station !== "ALL") {
+                        targetStop = trip.stops.find(s => s.station === station);
+                        displayRoute = `<div class="font-medium text-slate-900">${trip.direction}</div><div class="text-xs text-slate-500">${origin.station} ➔ ${dest.station}</div>`;
+                    }
+
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-50 transition-colors group cursor-pointer';
+                    row.onclick = () => openModal(trip);
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="font-mono text-sm font-semibold text-slate-700">${trip.id}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${lData.badge} ring-1 ring-inset">
+                                ${trip.lineId}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            ${displayRoute}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-slate-900">${targetStop.timeFormatted}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            ${getStatus(targetStop.timeMins)}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <button class="text-blue-600 hover:text-blue-800 font-medium text-sm">View Stops</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        function renderLines() {
+            const container = document.getElementById('fleet-container');
+            container.innerHTML = '';
+
+            Object.keys(lines).forEach(key => {
+                const l = lines[key];
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden train-card';
+                card.innerHTML = `
+                    <div class="p-6 bg-slate-50 border-b border-slate-200 flex justify-center items-center h-48 overflow-hidden relative">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-200/50 to-transparent"></div>
+                        <div class="train-svg w-full max-w-sm relative z-10">${l.svg}</div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900">${l.name} <span class="text-slate-500 font-medium text-lg ml-1">(${key})</span></h3>
+                                <p class="text-sm font-semibold text-slate-500 mt-1 uppercase tracking-wider">${l.type} • ${l.speed}</p>
+                            </div>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${l.badge} ring-1 ring-inset">
+                                ${key}
+                            </span>
+                        </div>
+                        <p class="text-slate-600 text-sm leading-relaxed mb-6 h-12">${l.desc}</p>
+                        
+                        <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Primary Stops</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${l.stops.map(s => `<span class="inline-flex items-center px-2 py-1 rounded bg-white text-xs font-medium text-slate-700 border border-slate-200 shadow-sm">${s}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- MODAL LOGIC ---
+        const modal = document.getElementById('trip-modal');
+        const modalContent = document.getElementById('trip-modal-content');
+        
+        function openModal(trip) {
+            const lData = lines[trip.lineId];
+            document.getElementById('modal-title').innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="px-2 py-1 rounded text-xs ${lData.badge}">${trip.lineId}</span>
+                    <span>${trip.direction} to ${trip.stops[trip.stops.length-1].station}</span>
+                </div>
+            `;
+            
+            const body = document.getElementById('modal-body');
+            body.innerHTML = '';
+            
+            const list = document.createElement('div');
+            list.className = 'relative border-l-2 border-slate-200 ml-6 my-6 space-y-6';
+            
+            trip.stops.forEach((stop, idx) => {
+                const isFirst = idx === 0;
+                const isLast = idx === trip.stops.length - 1;
+                const dotColor = (isFirst || isLast) ? 'bg-blue-600 ring-4 ring-blue-100' : 'bg-white border-2 border-slate-300';
+                
+                list.innerHTML += `
+                    <div class="relative pl-6">
+                        <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full ${dotColor}"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-slate-900">${stop.station}</p>
+                                ${isFirst ? '<p class="text-xs font-semibold text-emerald-600 uppercase mt-0.5">Origin</p>' : ''}
+                                ${isLast ? '<p class="text-xs font-semibold text-rose-600 uppercase mt-0.5">Terminus</p>' : ''}
+                            </div>
+                            <div class="text-right">
+                                <p class="font-mono font-bold text-slate-800">${stop.timeFormatted}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            body.appendChild(list);
+            
+            modal.classList.remove('hidden');
+            // Small delay for transition to kick in
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // match duration
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initData();
+            renderTimetable();
+        });
+
+    </script>
+</body>
+</html>
